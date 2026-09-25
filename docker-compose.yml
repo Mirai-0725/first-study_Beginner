@@ -1,0 +1,29 @@
+# ローカル開発用の MySQL(本番は Amazon RDS for MySQL を使う)
+# 接続情報は .env から読み込む(.env.example をコピーして作成する)
+services:
+  db:
+    image: mysql:8.4
+    container_name: kakeibo-mysql
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      TZ: Asia/Tokyo
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    ports:
+      # 自分のPCからのみ接続できるようにする
+      - "127.0.0.1:${DB_PORT}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  mysql-data:
