@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>家計簿プロトタイプ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-status="normal">
+  <header class="app-header">
+    <h1>家計簿 <span class="tag">プロトタイプ</span></h1>
+    <div class="period-controls">
+      <label for="period-select">期間</label>
+      <select id="period-select"></select>
+      <button type="button" id="edit-period-btn" class="secondary">期間を編集</button>
+      <button type="button" id="new-period-btn">＋ 新しい期間</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- 期間が1つも無いとき -->
+    <section id="empty-state" class="card" hidden>
+      <h2>はじめに期間を設定してください</h2>
+      <p>開始日・締め日・上限金額を決めると、支出を記録できるようになります。</p>
+      <button type="button" id="empty-new-period-btn">期間を設定する</button>
+    </section>
+
+    <div id="main-content" hidden>
+      <!-- 予算状況エリア -->
+      <section class="card summary">
+        <div class="summary-head">
+          <h2 id="summary-period"></h2>
+          <span id="status-badge" class="status-badge"></span>
+        </div>
+        <dl class="summary-grid">
+          <div><dt>上限金額</dt><dd id="budget-value"></dd></div>
+          <div><dt>使用済み金額</dt><dd id="spent-value"></dd></div>
+          <div><dt id="remaining-label">残り金額</dt><dd id="remaining-value"></dd></div>
+          <div><dt>使用率</dt><dd id="rate-value"></dd></div>
+        </dl>
+        <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="progress">
+          <div class="progress-bar" id="progress-bar"></div>
+          <div class="progress-threshold" id="progress-threshold" title="警告ライン"></div>
+        </div>
+      </section>
+
+      <!-- 支出入力エリア -->
+      <section class="card">
+        <h2 id="expense-form-title">支出を登録</h2>
+        <form id="expense-form" novalidate>
+          <div class="form-row">
+            <label>品名
+              <input type="text" id="expense-name" maxlength="50" placeholder="例: 牛乳">
+            </label>
+            <label>金額(円)
+              <input type="number" id="expense-amount" min="1" step="1" placeholder="例: 250">
+            </label>
+            <label>購入日
+              <input type="date" id="expense-date">
+            </label>
+          </div>
+          <p class="error" id="expense-error" role="alert"></p>
+          <div class="form-actions">
+            <button type="submit" id="expense-submit">登録</button>
+            <button type="button" id="expense-cancel" class="secondary" hidden>キャンセル</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- 支出一覧エリア -->
+      <section class="card">
+        <h2>支出一覧 <span id="expense-count" class="muted"></span></h2>
+        <p id="expense-empty" class="muted">この期間の支出はまだありません。</p>
+        <table class="expense-table" id="expense-table">
+          <thead>
+            <tr><th>購入日</th><th>品名</th><th class="num">金額</th><th></th></tr>
+          </thead>
+          <tbody id="expense-list"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <p class="footer-note">
+      ※要件確認用のプロトタイプです。データはこのブラウザ(localStorage)にのみ保存されます。
+      <button type="button" id="reset-btn" class="link-button">全データを消去</button>
+    </p>
+  </main>
+
+  <!-- 期間設定ダイアログ -->
+  <dialog id="period-dialog">
+    <form id="period-form" novalidate>
+      <h2 id="period-dialog-title">期間の設定</h2>
+      <label>開始日
+        <input type="date" id="period-start">
+      </label>
+      <label>締め日
+        <input type="date" id="period-end">
+      </label>
+      <label>上限金額(円)
+        <input type="number" id="period-budget" min="1" step="1" placeholder="例: 50000">
+      </label>
+      <p class="error" id="period-error" role="alert"></p>
+      <div class="form-actions">
+        <button type="submit">保存</button>
+        <button type="button" id="period-cancel" class="secondary">キャンセル</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
