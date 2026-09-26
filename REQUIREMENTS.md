@@ -24,7 +24,7 @@
 
 ## 3. 技術方針
 
-指定により、バックエンド・フロントエンド・DBは前回の課題(トレロ風タスク管理アプリ: React + Java/Spring Boot + PostgreSQL)とは異なる技術を使用する。
+バックエンド・フロントエンドは Python + Django、DB は MySQL を使用する。
 インフラは Terraform で AWS の EC2 と RDS を構築する。
 
 バージョンは実際に構築した環境のもの(2026年9月時点)。未記載のものは構築時に決定し、本書に追記する。
@@ -39,7 +39,7 @@
 | クライアント側の処理 | JavaScript(ライブラリなし) | (ブラウザ標準) | 削除時の確認ダイアログなど最小限に留める |
 | 入力チェック | Django Forms | (Djangoに準拠) | F-01〜F-05 の入力値チェックを行う |
 | DBアクセス | Django ORM | (Djangoに準拠) | パラメータ化クエリが標準で適用され、SQLインジェクション対策になる |
-| DB | MySQL | 8.4(LTS) | 本番は Amazon RDS for MySQL。ローカル開発は Docker Compose(`docker-compose.yml`)で起動し、本番と同じ MySQL を使う。文字コードは utf8mb4 |
+| DB | MySQL | 8.4(LTS) | 本番は Amazon RDS for MySQL。ローカル開発環境も Docker Compose(`docker-compose.yml`)で用意した MySQL を使い、本番とそろえる。文字コードは utf8mb4 |
 | DBドライバー | mysqlclient | 2.3.0 | Djangoが推奨するMySQL用ドライバー |
 | 設定値の読み込み | python-dotenv | 1.2.3 | SECRET_KEY・DB接続情報などを `.env` から読み込む |
 | アプリケーションサーバー | Gunicorn | (構築時に決定) | EC2上でDjangoを動かす |
