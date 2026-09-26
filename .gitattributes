@@ -1,2 +1,4 @@
 # シェルスクリプトは Linux(Dockerコンテナ・EC2)で実行するため、改行コードを常に LF にする
 *.sh text eol=lf
+# EC2 で実行されるシェルスクリプトのテンプレートも同様に LF にする
+*.tftpl text eol=lf

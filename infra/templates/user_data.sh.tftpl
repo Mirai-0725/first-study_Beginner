@@ -1,0 +1,160 @@
+#!/bin/bash
+# EC2 の初回起動時に実行されるセットアップスクリプト。
+# Terraform の templatefile() で、リージョンやDBの接続先などの値を埋め込んで使う。
+# (このファイル内の $${...} 形式は Terraform の変数。シェルの変数は $VAR 形式で書く)
+#
+# 実行ログ: /var/log/kakeibo-setup.log
+# ※DBのパスワードがログに出ないよう、set -x(実行コマンドの表示)は使わない
+set -euo pipefail
+exec > >(tee -a /var/log/kakeibo-setup.log) 2>&1
+
+log() { echo "[kakeibo-setup] $(date '+%F %T') $*"; }
+
+export HOME=/root
+export DEBIAN_FRONTEND=noninteractive
+
+APP_USER=kakeibo
+BASE_DIR=/opt/kakeibo
+APP_DIR=$BASE_DIR/app
+VENV_DIR=$BASE_DIR/venv
+UV=$BASE_DIR/uv/bin/uv
+export UV_PYTHON_INSTALL_DIR=$BASE_DIR/python
+
+# ===== 1. Elastic IP が付くまで待つ(付くまではインターネットに接続できない) =====
+log "Elastic IP (${public_ip}) の割り当てを待っています"
+for i in $(seq 1 60); do
+  TOKEN=$(curl -sf -X PUT http://169.254.169.254/latest/api/token -H "X-aws-ec2-metadata-token-ttl-seconds: 60" || true)
+  CURRENT_IP=$(curl -sf -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4 || true)
+  if [ "$CURRENT_IP" = "${public_ip}" ]; then
+    break
+  fi
+  sleep 5
+done
+log "現在のパブリックIP: $CURRENT_IP"
+
+# ===== 2. スワップ(メモリ1GBのため、パッケージのビルド時の不足に備える) =====
+if [ ! -f /swapfile ]; then
+  fallocate -l 1G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+
+# ===== 3. OSのパッケージ =====
+log "パッケージをインストールします"
+apt-get update
+# mysqlclient のビルドに build-essential・pkg-config・default-libmysqlclient-dev が必要
+apt-get install -y nginx git build-essential pkg-config default-libmysqlclient-dev python3-venv
+snap install aws-cli --classic
+
+# ===== 4. アプリのソースコード =====
+log "アプリを取得します(${repository_branch})"
+id "$APP_USER" >/dev/null 2>&1 || useradd --system --home-dir "$BASE_DIR" --shell /usr/sbin/nologin "$APP_USER"
+mkdir -p "$BASE_DIR"
+rm -rf "$APP_DIR"
+git clone --branch "${repository_branch}" --depth 1 "${repository_url}" "$APP_DIR"
+
+# ===== 5. Python 3.13 と依存パッケージ(uv で Python 3.13 を用意する) =====
+log "Python 3.13 と依存パッケージをインストールします"
+python3 -m venv "$BASE_DIR/uv"
+"$BASE_DIR/uv/bin/pip" install --quiet uv==0.12.19
+"$UV" python install 3.13
+"$UV" venv --python 3.13 "$VENV_DIR"
+"$UV" pip install --python "$VENV_DIR/bin/python" -r "$APP_DIR/requirements.txt" gunicorn==26.2.0
+
+# ===== 6. 設定ファイル .env(DBのパスワードは SSM パラメータストアから取得) =====
+log ".env を作成します"
+DB_PASSWORD=$(/snap/bin/aws ssm get-parameter --region "${region}" --name "${db_password_param}" \
+  --with-decryption --query Parameter.Value --output text)
+SECRET_KEY=$("$VENV_DIR/bin/python" -c 'import secrets; print(secrets.token_urlsafe(50))')
+umask 077
+cat > "$APP_DIR/.env" <<EOF
+DJANGO_SECRET_KEY=$SECRET_KEY
+DJANGO_DEBUG=False
+DJANGO_ALLOWED_HOSTS=${public_ip}
+DB_NAME=${db_name}
+DB_USER=${db_user}
+DB_PASSWORD=$DB_PASSWORD
+DB_HOST=${db_host}
+DB_PORT=${db_port}
+EOF
+umask 022
+unset DB_PASSWORD SECRET_KEY
+chown -R "$APP_USER:$APP_USER" "$APP_DIR"
+
+# ===== 7. DBのテーブル作成と静的ファイルの集約 =====
+log "DBのマイグレーションを実行します"
+cd "$APP_DIR"
+for i in $(seq 1 30); do
+  if sudo -u "$APP_USER" "$VENV_DIR/bin/python" manage.py migrate --noinput; then
+    break
+  fi
+  log "DBに接続できないため、10秒後に再試行します($i/30)"
+  sleep 10
+done
+sudo -u "$APP_USER" "$VENV_DIR/bin/python" manage.py collectstatic --noinput
+
+# ===== 8. Gunicorn(Django を動かすアプリケーションサーバー) =====
+log "Gunicorn を設定します"
+cat > /etc/systemd/system/kakeibo.service <<'EOF'
+[Unit]
+Description=kakeibo (Gunicorn + Django)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=kakeibo
+Group=www-data
+WorkingDirectory=/opt/kakeibo/app
+RuntimeDirectory=kakeibo
+ExecStart=/opt/kakeibo/venv/bin/gunicorn --workers 2 --bind unix:/run/kakeibo/gunicorn.sock --umask 007 config.wsgi:application
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload
+systemctl enable --now kakeibo
+
+# ===== 9. Nginx(リクエストを受けて Gunicorn へ転送し、静的ファイルを配信する) =====
+log "Nginx を設定します"
+cat > /etc/nginx/sites-available/kakeibo <<'EOF'
+server {
+    listen 80 default_server;
+    server_name _;
+    client_max_body_size 1m;
+
+    location /static/ {
+        alias /opt/kakeibo/app/staticfiles/;
+    }
+
+    location / {
+        proxy_pass http://unix:/run/kakeibo/gunicorn.sock;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+rm -f /etc/nginx/sites-enabled/default
+ln -sf /etc/nginx/sites-available/kakeibo /etc/nginx/sites-enabled/kakeibo
+nginx -t
+systemctl restart nginx
+
+# ===== 10. アプリ更新用のコマンド(SSMで接続して sudo kakeibo-update で実行する) =====
+cat > /usr/local/bin/kakeibo-update <<'EOF'
+#!/bin/bash
+# GitHub の最新のコードを取得して、アプリを更新・再起動する
+set -euo pipefail
+cd /opt/kakeibo/app
+sudo -u kakeibo git pull --ff-only
+/opt/kakeibo/uv/bin/uv pip install --python /opt/kakeibo/venv/bin/python -r requirements.txt
+sudo -u kakeibo /opt/kakeibo/venv/bin/python manage.py migrate --noinput
+sudo -u kakeibo /opt/kakeibo/venv/bin/python manage.py collectstatic --noinput
+systemctl restart kakeibo
+echo "更新が完了しました"
+EOF
+chmod 755 /usr/local/bin/kakeibo-update
+
+log "セットアップが完了しました"

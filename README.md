@@ -43,6 +43,8 @@
 | `budget/templates/budget/` | 画面のHTML(Djangoテンプレート) |
 | `budget/static/budget/` | CSS・JavaScript |
 | `budget/tests.py` / `budget/test_views.py` | テスト(モデル / 画面) |
+| `infra/` | AWS(VPC・EC2・RDS)を構築する Terraform のコード |
+| `infra/templates/user_data.sh.tftpl` | EC2の初回起動時に実行するセットアップスクリプト |
 | `docker-compose.yml` | ローカル開発用の MySQL |
 | `docker/mysql/initdb/` | MySQL の初回起動時に実行するスクリプト(テスト用DBの権限付与) |
 | `.env.example` | 設定ファイル `.env` のひな形(`.env` 自体はGitに含めない) |
