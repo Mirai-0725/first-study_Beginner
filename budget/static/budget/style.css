@@ -1,0 +1,186 @@
+:root {
+  --bg-normal: #f4f6f8;
+  --bg-warning: #ffd4d4;
+  --bg-over: #d32f2f;
+  --card: #ffffff;
+  --text: #222222;
+  --muted: #6b7280;
+  --primary: #2563eb;
+  --danger: #c62828;
+  --border: #d1d5db;
+  --bar-normal: #22c55e;
+  --bar-warning: #f97316;
+  --bar-over: #b71c1c;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+  color: var(--text);
+  background: var(--bg-normal);
+  transition: background-color 0.4s ease;
+  min-height: 100vh;
+}
+
+/* ===== F-07: 使用率に応じた背景色 ===== */
+body[data-status="warning"] { background: var(--bg-warning); }
+body[data-status="over"] { background: var(--bg-over); }
+body[data-status="over"] .app-header h1 a { color: #ffffff; }
+
+/* ===== ヘッダー ===== */
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 20px 16px 8px;
+}
+.app-header h1 { margin: 0; font-size: 1.5rem; }
+.app-header h1 a { color: inherit; text-decoration: none; }
+
+.period-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background: var(--card);
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+.period-select-form { display: flex; align-items: center; gap: 8px; }
+.period-select-form label { flex-direction: row; }
+
+main { max-width: 880px; margin: 0 auto; padding: 8px 16px 32px; }
+
+/* ===== カード ===== */
+.card {
+  background: var(--card);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.card.narrow { max-width: 440px; margin-left: auto; margin-right: auto; }
+.card h2 { margin: 0 0 12px; font-size: 1.1rem; }
+
+/* ===== メッセージ ===== */
+.messages { list-style: none; margin: 0 0 16px; padding: 0; }
+.message {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+/* ===== 予算状況 ===== */
+.summary-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+.status-badge {
+  font-size: 0.85rem;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+}
+body[data-status="warning"] .status-badge { background: #fee2e2; color: var(--danger); }
+body[data-status="over"] .status-badge { background: var(--danger); color: #ffffff; }
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 0 0 16px;
+}
+.summary-grid dt { color: var(--muted); font-size: 0.85rem; }
+.summary-grid dd { margin: 4px 0 0; font-size: 1.4rem; font-weight: bold; }
+.summary-grid dd.negative { color: var(--danger); }
+
+.progress {
+  position: relative;
+  height: 18px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-bar { height: 100%; background: var(--bar-normal); }
+body[data-status="warning"] .progress-bar { background: var(--bar-warning); }
+body[data-status="over"] .progress-bar { background: var(--bar-over); }
+.progress-threshold {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+/* ===== フォーム ===== */
+.form-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
+
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.form-row .field { margin-bottom: 0; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--muted); }
+
+input, select {
+  font: inherit;
+  font-size: 1rem;
+  color: var(--text);
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 100%;
+}
+.period-controls select { padding: 6px 8px; width: auto; }
+.has-error input { border-color: var(--danger); }
+
+.error { color: var(--danger); font-size: 0.9rem; margin: 0; }
+.error-box {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.form-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+/* ===== ボタン ===== */
+button, .button {
+  display: inline-block;
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary);
+  color: #ffffff;
+  text-decoration: none;
+  cursor: pointer;
+}
+button:hover, .button:hover { opacity: 0.9; }
+.secondary { background: #e5e7eb; color: var(--text); }
+button.danger { background: transparent; color: var(--danger); }
+.small { padding: 4px 8px; font-size: 0.85rem; }
+
+.inline-form { display: inline; }
+
+.muted { color: var(--muted); font-weight: normal; font-size: 0.9rem; }
+
+/* ===== 支出一覧 ===== */
+.expense-table { width: 100%; border-collapse: collapse; }
+.expense-table th, .expense-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }
+.expense-table th { font-size: 0.85rem; color: var(--muted); }
+.expense-table .num { text-align: right; white-space: nowrap; }
+.expense-table td.actions { text-align: right; white-space: nowrap; }
+.expense-table tr.editing { background: #eff6ff; }
+
+@media (max-width: 600px) {
+  .form-row { grid-template-columns: 1fr; }
+}

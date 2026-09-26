@@ -1,7 +1,10 @@
+from dataclasses import dataclass
+
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q, Sum
+from django.urls import reverse
 from django.utils import timezone
 
 # F-07: 警告に切り替わる使用率(%)。要件の初期値 80%
@@ -14,6 +17,48 @@ class BudgetStatus(models.TextChoices):
     NORMAL = 'normal', '予算内'
     WARNING = 'warning', '上限に近づいています'
     OVER = 'over', '上限を超えました'
+
+
+@dataclass(frozen=True)
+class BudgetSummary:
+    """F-06: ある時点の予算状況。使用済み金額を1回だけ集計し、そこから各値を計算する"""
+
+    budget: int
+    spent: int
+
+    @property
+    def remaining(self):
+        """残り金額(上限金額 − 使用済み金額)。上限を超えた場合はマイナスになる"""
+        return self.budget - self.spent
+
+    @property
+    def over_amount(self):
+        """超過額。上限を超えていなければ 0"""
+        return max(self.spent - self.budget, 0)
+
+    @property
+    def usage_rate(self):
+        """使用率(%)"""
+        return self.spent * 100 / self.budget
+
+    @property
+    def usage_percent(self):
+        """画面表示用の使用率(%)。小数点以下は切り捨てる(79.99% を 80% と表示しないため)"""
+        return self.spent * 100 // self.budget
+
+    @property
+    def progress_percent(self):
+        """プログレスバーの長さ(%)。100% を上限とする"""
+        return min(self.usage_rate, 100)
+
+    @property
+    def status(self):
+        """F-07: 使用率に応じた状態。小数の誤差が出ないよう整数で比較する"""
+        if self.spent > self.budget:
+            return BudgetStatus.OVER
+        if self.spent * 100 >= self.budget * WARNING_THRESHOLD_PERCENT:
+            return BudgetStatus.WARNING
+        return BudgetStatus.NORMAL
 
 
 class Period(models.Model):
@@ -71,11 +116,18 @@ class Period(models.Model):
                     '先に支出を修正・削除してください。'
                 )
 
+    def get_absolute_url(self):
+        return reverse('budget:period_detail', args=[self.pk])
+
     def contains(self, date):
         """指定した日付がこの期間内(開始日・締め日を含む)かどうか"""
         return self.start_date <= date <= self.end_date
 
     # ===== F-06: 予算状況の計算 =====
+
+    def summary(self):
+        """現在の予算状況。画面表示ではこれを1回呼び、結果をまとめて使う"""
+        return BudgetSummary(budget=self.budget, spent=self.spent_amount)
 
     @property
     def spent_amount(self):
@@ -84,23 +136,15 @@ class Period(models.Model):
 
     @property
     def remaining_amount(self):
-        """残り金額(上限金額 − 使用済み金額)。上限を超えた場合はマイナスになる"""
-        return self.budget - self.spent_amount
+        return self.summary().remaining
 
     @property
     def usage_rate(self):
-        """使用率(%)"""
-        return self.spent_amount * 100 / self.budget
+        return self.summary().usage_rate
 
     @property
     def status(self):
-        """F-07: 使用率に応じた状態。小数の誤差が出ないよう整数で比較する"""
-        spent = self.spent_amount
-        if spent > self.budget:
-            return BudgetStatus.OVER
-        if spent * 100 >= self.budget * WARNING_THRESHOLD_PERCENT:
-            return BudgetStatus.WARNING
-        return BudgetStatus.NORMAL
+        return self.summary().status
 
 
 class Expense(models.Model):

@@ -1,0 +1,99 @@
+{% extends 'budget/base.html' %}
+{% load budget_extras %}
+
+{% block title %}{{ period }} | 家計簿{% endblock %}
+
+{% block status %}{{ summary.status }}{% endblock %}
+
+{% block header_controls %}
+  <div class="period-controls">
+    <form method="get" action="{% url 'budget:index' %}" class="period-select-form">
+      <label for="period-select">期間</label>
+      <select id="period-select" name="period" data-auto-submit>
+        {% for p in periods %}
+          <option value="{{ p.pk }}"{% if p.pk == period.pk %} selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+      <noscript><button type="submit" class="secondary small">表示</button></noscript>
+    </form>
+    <a class="button secondary" href="{% url 'budget:period_edit' period.pk %}">期間を編集</a>
+    <a class="button" href="{% url 'budget:period_create' %}">＋ 新しい期間</a>
+  </div>
+{% endblock %}
+
+{% block content %}
+  {# ===== 予算状況(F-06, F-07) ===== #}
+  <section class="card summary">
+    <div class="summary-head">
+      <h2>{{ period }}</h2>
+      <span class="status-badge">{{ summary.status.label }}</span>
+    </div>
+    <dl class="summary-grid">
+      <div><dt>上限金額</dt><dd>{{ summary.budget|yen }}</dd></div>
+      <div><dt>使用済み金額</dt><dd>{{ summary.spent|yen }}</dd></div>
+      {% if summary.over_amount %}
+        <div><dt>超過額</dt><dd class="negative">{{ summary.over_amount|yen }}</dd></div>
+      {% else %}
+        <div><dt>残り金額</dt><dd>{{ summary.remaining|yen }}</dd></div>
+      {% endif %}
+      <div><dt>使用率</dt><dd>{{ summary.usage_percent }}%</dd></div>
+    </dl>
+    <div class="progress" role="progressbar" aria-label="使用率"
+         aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ summary.usage_percent }}">
+      <div class="progress-bar" style="width: {{ summary.progress_percent|floatformat:'2u' }}%"></div>
+      <div class="progress-threshold" style="left: {{ warning_threshold }}%" title="警告ライン({{ warning_threshold }}%)"></div>
+    </div>
+  </section>
+
+  {# ===== 支出の入力(F-03, F-05) ===== #}
+  <section class="card">
+    <h2>{% if editing_expense %}支出を編集{% else %}支出を登録{% endif %}</h2>
+    <form method="post"
+          action="{% if editing_expense %}{% url 'budget:expense_edit' editing_expense.pk %}{% else %}{{ period.get_absolute_url }}{% endif %}">
+      {% csrf_token %}
+      {% include 'budget/_non_field_errors.html' %}
+      <div class="form-row">
+        {% for field in form %}
+          {% include 'budget/_field.html' %}
+        {% endfor %}
+      </div>
+      <div class="form-actions">
+        <button type="submit">{% if editing_expense %}更新{% else %}登録{% endif %}</button>
+        {% if editing_expense %}
+          <a class="button secondary" href="{{ period.get_absolute_url }}">キャンセル</a>
+        {% endif %}
+      </div>
+    </form>
+  </section>
+
+  {# ===== 支出の一覧(F-04, F-05) ===== #}
+  <section class="card">
+    <h2>支出一覧{% if expenses %} <span class="muted">({{ expenses|length }}件)</span>{% endif %}</h2>
+    {% if expenses %}
+      <table class="expense-table">
+        <thead>
+          <tr><th>購入日</th><th>品名</th><th class="num">金額</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for expense in expenses %}
+            <tr{% if expense.pk == editing_expense.pk %} class="editing"{% endif %}>
+              <td>{{ expense.purchased_on|date:"Y/n/j" }}</td>
+              <td>{{ expense.name }}</td>
+              <td class="num">{{ expense.amount|yen }}</td>
+              <td class="actions">
+                <a class="button secondary small" href="{% url 'budget:expense_edit' expense.pk %}">編集</a>
+                <form method="post" action="{% url 'budget:expense_delete' expense.pk %}"
+                      class="inline-form" data-confirm="「{{ expense.name }}」({{ expense.amount|yen }})を削除しますか?">
+                  {% csrf_token %}
+                  <button type="submit" class="danger small">削除</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">この期間の支出はまだありません。</p>
+    {% endif %}
+  </section>
+{% endblock %}

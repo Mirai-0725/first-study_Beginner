@@ -1,0 +1,21 @@
+{% extends 'budget/base.html' %}
+
+{% block title %}{% if period %}期間を編集{% else %}新しい期間{% endif %} | 家計簿{% endblock %}
+
+{% block content %}
+  <section class="card narrow">
+    <h2>{% if period %}期間を編集{% else %}新しい期間を設定{% endif %}</h2>
+
+    <form method="post">
+      {% csrf_token %}
+      {% include 'budget/_non_field_errors.html' %}
+      {% for field in form %}
+        {% include 'budget/_field.html' %}
+      {% endfor %}
+      <div class="form-actions">
+        <button type="submit">保存</button>
+        <a class="button secondary" href="{% if period %}{{ period.get_absolute_url }}{% else %}{% url 'budget:index' %}{% endif %}">キャンセル</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

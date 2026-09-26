@@ -1,0 +1,30 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}家計簿{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'budget/style.css' %}">
+</head>
+{# F-07: data-status の値(normal / warning / over)に応じて CSS で背景色を切り替える #}
+<body data-status="{% block status %}normal{% endblock %}">
+  <header class="app-header">
+    <h1><a href="{% url 'budget:index' %}">家計簿</a></h1>
+    {% block header_controls %}{% endblock %}
+  </header>
+
+  <main>
+    {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}
+          <li class="message">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{% static 'budget/app.js' %}"></script>
+</body>
+</html>

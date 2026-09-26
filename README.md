@@ -5,7 +5,7 @@
 期間(開始日〜締め日)ごとに使える金額の上限を決め、購入した物と金額を記録していくことで、
 予算内に収まっているかを一目で確認できます。上限に近づくと画面の背景が赤くなって知らせます。
 
-> 現在は開発中です(期間・支出のデータモデルまで作成済み)。画面はまだ実装していません。
+> 現在は開発中です(必須機能の画面まで実装済み)。AWSへのデプロイはまだ行っていません。
 
 ## 主な機能(予定)
 
@@ -36,7 +36,13 @@
 | パス | 内容 |
 |---|---|
 | `config/` | Djangoプロジェクトの設定(`settings.py`・URL定義など) |
-| `budget/` | 家計簿アプリ本体(期間・支出の機能をここに実装する) |
+| `budget/` | 家計簿アプリ本体 |
+| `budget/models.py` | 期間・支出のデータと、予算状況の計算 |
+| `budget/forms.py` | 入力フォーム(期間・支出) |
+| `budget/views.py` / `budget/urls.py` | 画面の処理とURL |
+| `budget/templates/budget/` | 画面のHTML(Djangoテンプレート) |
+| `budget/static/budget/` | CSS・JavaScript |
+| `budget/tests.py` / `budget/test_views.py` | テスト(モデル / 画面) |
 | `docker-compose.yml` | ローカル開発用の MySQL |
 | `docker/mysql/initdb/` | MySQL の初回起動時に実行するスクリプト(テスト用DBの権限付与) |
 | `.env.example` | 設定ファイル `.env` のひな形(`.env` 自体はGitに含めない) |
