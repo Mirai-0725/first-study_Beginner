@@ -1,7 +1,7 @@
 from datetime import date
 
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, connection
+from django.db import DataError, IntegrityError, connection
 from django.db.models import ProtectedError
 from django.test import TestCase
 from django.utils import timezone
@@ -19,6 +19,17 @@ class DatabaseConnectionTests(TestCase):
         with connection.cursor() as cursor:
             cursor.execute('SELECT 1')
             self.assertEqual(cursor.fetchone(), (1,))
+
+    def test_strict_mode_is_enabled(self):
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT @@SESSION.sql_mode')
+            self.assertIn('STRICT_TRANS_TABLES', cursor.fetchone()[0].split(','))
+
+    def test_too_long_value_is_rejected_instead_of_truncated(self):
+        # 入力チェックを通さずに保存した場合でも、切り詰めずにエラーになること(Strict Mode の効果)
+        period = Period.objects.create(start_date=date(2026, 4, 25), end_date=date(2026, 5, 24), budget=1000)
+        with self.assertRaises(DataError):
+            Expense.objects.create(period=period, name='あ' * 51, amount=100, purchased_on=date(2026, 5, 1))
 
 
 def create_period(start=date(2026, 4, 25), end=date(2026, 5, 24), budget=50000):

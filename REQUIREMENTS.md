@@ -39,7 +39,7 @@
 | クライアント側の処理 | JavaScript(ライブラリなし) | (ブラウザ標準) | 削除時の確認ダイアログなど最小限に留める |
 | 入力チェック | Django Forms | (Djangoに準拠) | F-01〜F-05 の入力値チェックを行う |
 | DBアクセス | Django ORM | (Djangoに準拠) | パラメータ化クエリが標準で適用され、SQLインジェクション対策になる |
-| DB | MySQL | 8.4(LTS) | 本番は Amazon RDS for MySQL。ローカル開発環境も Docker Compose(`docker-compose.yml`)で用意した MySQL を使い、本番とそろえる。文字コードは utf8mb4 |
+| DB | MySQL | 8.4(LTS) | 本番は Amazon RDS for MySQL。ローカル開発環境も Docker Compose(`docker-compose.yml`)で用意した MySQL を使い、本番とそろえる。文字コードは utf8mb4。Strict Mode(不正な値を切り詰めずにエラーにする設定)を接続時に有効にする |
 | DBドライバー | mysqlclient | 2.3.0 | Djangoが推奨するMySQL用ドライバー |
 | 設定値の読み込み | python-dotenv | 1.2.3 | SECRET_KEY・DB接続情報などを `.env` から読み込む |
 | アプリケーションサーバー | Gunicorn | 26.2.0 | EC2上でDjangoを動かす |

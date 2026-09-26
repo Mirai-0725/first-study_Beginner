@@ -94,6 +94,13 @@ DATABASES = {
         'OPTIONS': {
             # 日本語や絵文字を正しく保存できるようにする
             'charset': 'utf8mb4',
+            # Strict Mode を有効にする(不正な値を切り詰めて保存せず、エラーにする)。
+            # RDS の標準設定では無効のため、接続ごとに MySQL 8.4 の標準と同じ sql_mode を設定し、
+            # ローカル(Docker)と本番(RDS)の動作をそろえる
+            'init_command': (
+                "SET sql_mode='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,"
+                "NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'"
+            ),
         },
     }
 }
