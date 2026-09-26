@@ -71,15 +71,6 @@ docker compose up -d --wait
 .\.venv\Scripts\python.exe manage.py runserver
 ```
 
-### 管理画面でデータを確認する(任意)
-
-Django の管理画面(http://127.0.0.1:8000/admin/)で、期間と支出のデータを直接確認・編集できます。
-初回のみ、管理画面にログインするためのユーザーを作成します。
-
-```powershell
-.\.venv\Scripts\python.exe manage.py createsuperuser
-```
-
 ### テスト
 
 ```powershell
