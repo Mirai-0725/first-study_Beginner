@@ -1,0 +1,9 @@
+{% extends 'budget/base.html' %}
+
+{% block content %}
+  <section class="card">
+    <h2>はじめに期間を設定してください</h2>
+    <p>開始日・締め日・上限金額を決めると、支出を記録できるようになります。</p>
+    <a class="button" href="{% url 'budget:period_create' %}">期間を設定する</a>
+  </section>
+{% endblock %}
