@@ -143,6 +143,14 @@ class ExpenseCreateViewTests(TestCase):
                 self.assertIn(field, response.context['form'].errors)
                 self.assertFalse(Expense.objects.exists())
 
+    def test_blank_name_shows_only_one_error(self):
+        # 空文字・空白のみのどちらでも、品名のエラーは1つだけ表示されること
+        for name in ['', '   ']:
+            with self.subTest(name=name):
+                response = self.post(name=name)
+                self.assertEqual(len(response.context['form'].errors['name']), 1)
+                self.assertFalse(Expense.objects.exists())
+
     def test_non_integer_amount_is_rejected(self):
         response = self.post(amount='12.5')
         self.assertIn('amount', response.context['form'].errors)

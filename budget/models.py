@@ -179,7 +179,8 @@ class Expense(models.Model):
 
     def clean(self):
         # 品名が空白だけの場合は未入力として扱う
-        if self.name is not None:
+        # (空文字の場合は項目のチェックで必須エラーになるため、ここでは空白だけの場合のみ扱う)
+        if self.name:
             self.name = self.name.strip()
             if not self.name:
                 raise ValidationError({'name': '品名を入力してください。'})
