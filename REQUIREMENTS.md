@@ -52,10 +52,15 @@
 
 | 区分 | 技術 | 備考 |
 |---|---|---|
-| クラウド | AWS | |
-| IaC | Terraform | AWSリソースはすべてTerraformで作成・削除する |
-| アプリ実行環境 | Amazon EC2 | パブリックサブネットに配置する |
-| DB | Amazon RDS for MySQL | プライベートサブネットに配置し、**EC2からのみ接続できる**ようにする |
+| クラウド | AWS(東京リージョン ap-northeast-1) | 無料プランのクレジットの範囲内で利用する |
+| IaC | Terraform | AWSリソースはすべてTerraformで作成・削除する(`infra/`) |
+| アプリ実行環境 | Amazon EC2(t4g.micro、Ubuntu Server 24.04 LTS) | パブリックサブネットに配置し、Elastic IP を付ける(停止・起動してもアドレスが変わらないようにするため) |
+| DB | Amazon RDS for MySQL(db.t4g.micro、MySQL 8.4、ストレージ 20GB) | プライベートサブネットに配置し、**EC2からのみ接続できる**ようにする。シングルAZ、自動バックアップは1日分 |
+| 秘密情報の保管 | AWS Systems Manager パラメータストア | DBのパスワードをTerraformでランダムに生成し、暗号化(SecureString)して保存する。EC2は起動時にここから読み取る |
+| サーバーへの接続 | AWS Systems Manager セッションマネージャー | SSHの代わりに使う。ポート22を開けず、鍵ファイルの管理も不要になる |
+| デプロイ | EC2の初回起動時に実行するスクリプト(ユーザーデータ) | GitHubの `main` ブランチを取得し、Python・Nginx・Gunicornのインストールからアプリの起動までを自動で行う |
+
+※インスタンスの種類は、無料プランの対象の中から、Arm版で料金が最も安いものを選んでいる。費用の目安は月 約33 USD(EC2 約8、RDS 約18、パブリックIPv4 約4、ストレージ 約3.5)で、無料プランのクレジットから差し引かれる。
 
 構成イメージ:
 
