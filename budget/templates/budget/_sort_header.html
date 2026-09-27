@@ -1,0 +1,5 @@
+<th class="sortable{% if css_class %} {{ css_class }}{% endif %}{% if header.active %} active{% endif %}" aria-sort="{{ header.aria_sort }}">
+  <a href="{{ period.get_absolute_url }}{{ header.query }}" title="{{ header.label }}で並び替え">
+    {{ header.label }}<span class="sort-mark" aria-hidden="true">{% if header.active %}{% if header.order == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span>
+  </a>
+</th>
