@@ -1,10 +1,14 @@
 from django.contrib import messages
+from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .forms import ExpenseForm, PeriodForm
-from .models import WARNING_THRESHOLD_PERCENT, Expense, Period
+from .models import WARNING_THRESHOLD_PERCENT, Category, Expense, Period
+
+# W-04: 支出の入力欄の下に、ボタンとして表示するカテゴリの数
+FREQUENT_CATEGORY_COUNT = 8
 
 
 def index(request):
@@ -27,14 +31,19 @@ def index(request):
 
 def _render_period_page(request, period, form, editing_expense=None):
     """メイン画面(予算状況・支出の入力・支出の一覧)を表示する"""
+    categories = Category.objects.annotate(usage_count=Count('expenses'))
     return render(request, 'budget/period_detail.html', {
         'period': period,
         'periods': Period.objects.all(),
         'summary': period.summary(),
-        'expenses': period.expenses.all(),
+        'segments': period.category_segments(),
+        'expenses': period.expenses.select_related('category'),
         'form': form,
         'editing_expense': editing_expense,
         'warning_threshold': WARNING_THRESHOLD_PERCENT,
+        # W-04: 入力候補(すべてのカテゴリ)と、よく使うカテゴリのボタン(使用回数の多い順)
+        'categories': categories.order_by('name'),
+        'frequent_categories': categories.order_by('-usage_count', 'name')[:FREQUENT_CATEGORY_COUNT],
     })
 
 

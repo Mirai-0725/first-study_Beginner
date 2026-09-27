@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 from django.db.models import Q, Sum
 from django.urls import reverse
@@ -9,6 +9,24 @@ from django.utils import timezone
 
 # F-07: 警告に切り替わる使用率(%)。要件の初期値 80%
 WARNING_THRESHOLD_PERCENT = 80
+
+# W-04: カテゴリに順番に割り当てる色。警告・超過の背景色(赤系)と見分けやすい色にしている
+CATEGORY_COLORS = [
+    '#3b82f6',  # 青
+    '#22c55e',  # 緑
+    '#f59e0b',  # 黄
+    '#a855f7',  # 紫
+    '#14b8a6',  # 青緑
+    '#ec4899',  # ピンク
+    '#6366f1',  # 藍
+    '#84cc16',  # 黄緑
+    '#0ea5e9',  # 水色
+    '#f97316',  # オレンジ
+    '#78716c',  # 茶
+    '#eab308',  # 山吹
+]
+UNCATEGORIZED_LABEL = '未分類'
+UNCATEGORIZED_COLOR = '#9ca3af'
 
 
 class BudgetStatus(models.TextChoices):
@@ -51,6 +69,24 @@ class BudgetSummary:
         """プログレスバーの長さ(%)。100% を上限とする"""
         return min(self.usage_rate, 100)
 
+    # ----- プログレスバーの目盛り -----
+    # バー全体の長さは「上限金額」と「使用済み金額」の大きい方。上限を超えたときは、
+    # バーいっぱいに支出を表示し、上限の位置に線を引く
+
+    @property
+    def bar_scale(self):
+        return max(self.budget, self.spent)
+
+    @property
+    def warning_line_percent(self):
+        """警告ライン(上限金額の 80%)の、バー上の位置(%)"""
+        return self.budget * WARNING_THRESHOLD_PERCENT / self.bar_scale
+
+    @property
+    def budget_line_percent(self):
+        """上限金額の、バー上の位置(%)。上限を超えていなければ 100"""
+        return self.budget * 100 / self.bar_scale
+
     @property
     def status(self):
         """F-07: 使用率に応じた状態。小数の誤差が出ないよう整数で比較する"""
@@ -59,6 +95,55 @@ class BudgetSummary:
         if self.spent * 100 >= self.budget * WARNING_THRESHOLD_PERCENT:
             return BudgetStatus.WARNING
         return BudgetStatus.NORMAL
+
+
+@dataclass(frozen=True)
+class CategorySegment:
+    """W-04: 予算状況のプログレスバーに表示する、カテゴリ1つ分の区間"""
+
+    name: str
+    color: str
+    amount: int
+    bar_percent: float  # バー上の長さ(%)
+    share_percent: int  # 使用済み金額に占める割合(%)。小数点以下は切り捨てる
+
+
+class Category(models.Model):
+    """W-04: 支出のカテゴリ。一度使ったカテゴリは記憶し、次から選べるようにする"""
+
+    # MySQL の標準の照合順序では「バス」と「パス」、「A」と「a」が同じとみなされるため、
+    # カテゴリ名は1文字ずつ厳密に比較する照合順序を使う
+    name = models.CharField('カテゴリ名', max_length=20, unique=True, db_collation='utf8mb4_bin')
+    color = models.CharField(
+        '色',
+        max_length=7,
+        validators=[RegexValidator(r'^#[0-9a-fA-F]{6}$', '色は #RRGGBB の形式で指定してください。')],
+    )
+    created_at = models.DateTimeField('作成日時', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'カテゴリ'
+        verbose_name_plural = 'カテゴリ'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        if self.name:
+            self.name = self.name.strip()
+            if not self.name:
+                raise ValidationError({'name': 'カテゴリ名を入力してください。'})
+
+    @classmethod
+    def get_or_create_by_name(cls, name):
+        """カテゴリ名からカテゴリを取得する。初めて使う名前なら、次の色を割り当てて作成する"""
+        name = name.strip()
+        category = cls.objects.filter(name=name).first()
+        if category is None:
+            color = CATEGORY_COLORS[cls.objects.count() % len(CATEGORY_COLORS)]
+            category = cls.objects.create(name=name, color=color)
+        return category
 
 
 class Period(models.Model):
@@ -129,6 +214,26 @@ class Period(models.Model):
         """現在の予算状況。画面表示ではこれを1回呼び、結果をまとめて使う"""
         return BudgetSummary(budget=self.budget, spent=self.spent_amount)
 
+    def category_segments(self):
+        """W-04: カテゴリ別の合計金額を、プログレスバーの区間として返す(金額の大きい順)"""
+        rows = list(
+            self.expenses.values('category__name', 'category__color')
+            .annotate(total=Sum('amount'))
+            .order_by('-total', 'category__name')
+        )
+        spent = sum(row['total'] for row in rows)
+        scale = max(self.budget, spent)
+        return [
+            CategorySegment(
+                name=row['category__name'] or UNCATEGORIZED_LABEL,
+                color=row['category__color'] or UNCATEGORIZED_COLOR,
+                amount=row['total'],
+                bar_percent=row['total'] * 100 / scale,
+                share_percent=row['total'] * 100 // spent,
+            )
+            for row in rows
+        ]
+
     @property
     def spent_amount(self):
         """使用済み金額(期間内の支出金額の合計)"""
@@ -157,6 +262,14 @@ class Expense(models.Model):
         related_name='expenses',
     )
     name = models.CharField('品名', max_length=50)
+    category = models.ForeignKey(
+        Category,
+        verbose_name='カテゴリ',
+        on_delete=models.SET_NULL,  # カテゴリを削除しても支出は残し、「未分類」として扱う
+        related_name='expenses',
+        null=True,
+        blank=True,
+    )
     amount = models.PositiveIntegerField('金額', validators=[MinValueValidator(1)])
     purchased_on = models.DateField('購入日', default=timezone.localdate)
     created_at = models.DateTimeField('作成日時', auto_now_add=True)

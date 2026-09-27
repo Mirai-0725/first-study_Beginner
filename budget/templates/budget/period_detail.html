@@ -38,11 +38,29 @@
       {% endif %}
       <div><dt>使用率</dt><dd>{{ summary.usage_percent }}%</dd></div>
     </dl>
+    {# W-04: カテゴリごとの色で積み上げて表示する。上限を超えたらバーいっぱいに表示し、上限の位置に線を引く #}
     <div class="progress" role="progressbar" aria-label="使用率"
          aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ summary.usage_percent }}">
-      <div class="progress-bar" style="width: {{ summary.progress_percent|floatformat:'2u' }}%"></div>
-      <div class="progress-threshold" style="left: {{ warning_threshold }}%" title="警告ライン({{ warning_threshold }}%)"></div>
+      {% for segment in segments %}
+        <div class="progress-segment" style="width: {{ segment.bar_percent|floatformat:'4u' }}%; background-color: {{ segment.color }}"
+             title="{{ segment.name }} {{ segment.amount|yen }}"></div>
+      {% endfor %}
+      <div class="progress-line warning-line" style="left: {{ summary.warning_line_percent|floatformat:'4u' }}%"
+           title="警告ライン(上限の{{ warning_threshold }}%)"></div>
+      {% if summary.over_amount %}
+        <div class="progress-line budget-line" style="left: {{ summary.budget_line_percent|floatformat:'4u' }}%" title="上限金額"></div>
+      {% endif %}
     </div>
+    {% if segments %}
+      <ul class="category-legend">
+        {% for segment in segments %}
+          <li>
+            <span class="category-dot" style="background-color: {{ segment.color }}"></span>
+            {{ segment.name }} <span class="legend-amount">{{ segment.amount|yen }}({{ segment.share_percent }}%)</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
   </section>
 
   {# ===== 支出の入力(F-03, F-05) ===== #}
@@ -57,6 +75,20 @@
           {% include 'budget/_field.html' %}
         {% endfor %}
       </div>
+      {# W-04: 一度使ったカテゴリを、入力候補とボタンから選べるようにする #}
+      <datalist id="category-options">
+        {% for category in categories %}<option value="{{ category.name }}">{% endfor %}
+      </datalist>
+      {% if frequent_categories %}
+        <div class="category-chips" aria-label="よく使うカテゴリ">
+          <span class="muted">よく使うカテゴリ:</span>
+          {% for category in frequent_categories %}
+            <button type="button" class="category-chip" data-category="{{ category.name }}">
+              <span class="category-dot" style="background-color: {{ category.color }}"></span>{{ category.name }}
+            </button>
+          {% endfor %}
+        </div>
+      {% endif %}
       <div class="form-actions">
         <button type="submit">{% if editing_expense %}更新{% else %}登録{% endif %}</button>
         {% if editing_expense %}
@@ -72,13 +104,20 @@
     {% if expenses %}
       <table class="expense-table">
         <thead>
-          <tr><th>購入日</th><th>品名</th><th class="num">金額</th><th></th></tr>
+          <tr><th>購入日</th><th>品名</th><th>カテゴリ</th><th class="num">金額</th><th></th></tr>
         </thead>
         <tbody>
           {% for expense in expenses %}
             <tr{% if expense.pk == editing_expense.pk %} class="editing"{% endif %}>
               <td>{{ expense.purchased_on|date:"Y/n/j" }}</td>
               <td>{{ expense.name }}</td>
+              <td class="category-cell">
+                {% if expense.category %}
+                  <span class="category-dot" style="background-color: {{ expense.category.color }}"></span>{{ expense.category.name }}
+                {% else %}
+                  <span class="muted">未分類</span>
+                {% endif %}
+              </td>
               <td class="num">{{ expense.amount|yen }}</td>
               <td class="actions">
                 <a class="button secondary small" href="{% url 'budget:expense_edit' expense.pk %}">編集</a>
