@@ -25,7 +25,7 @@
   {# ===== 予算状況(F-06, F-07) ===== #}
   <section class="card summary">
     <div class="summary-head">
-      <h2>{{ period }}</h2>
+      <h2>{{ period }} <span class="timing-tag timing-{{ timing }}">{{ timing.label }}</span></h2>
       <span class="status-badge">{{ summary.status.label }}</span>
     </div>
     <dl class="summary-grid">
