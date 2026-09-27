@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from . import sorting
 from .forms import ExpenseForm, PeriodForm
 from .models import WARNING_THRESHOLD_PERCENT, Category, Expense, Period
 
@@ -32,12 +33,14 @@ def index(request):
 def _render_period_page(request, period, form, editing_expense=None):
     """メイン画面(予算状況・支出の入力・支出の一覧)を表示する"""
     categories = Category.objects.annotate(usage_count=Count('expenses'))
+    sort, order = sorting.get_sort(request)
     return render(request, 'budget/period_detail.html', {
         'period': period,
         'periods': Period.objects.all(),
         'summary': period.summary(),
         'segments': period.category_segments(),
-        'expenses': period.expenses.select_related('category'),
+        'expenses': period.expenses.select_related('category').order_by(*sorting.order_by_args(sort, order)),
+        'sort_headers': sorting.sort_headers(sort, order),
         'form': form,
         'editing_expense': editing_expense,
         'warning_threshold': WARNING_THRESHOLD_PERCENT,
