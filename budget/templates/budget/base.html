@@ -9,7 +9,13 @@
 {# F-07: data-status の値(normal / warning / over)に応じて CSS で背景色を切り替える #}
 <body data-status="{% block status %}normal{% endblock %}">
   <header class="app-header">
-    <h1><a href="{% url 'budget:index' %}">家計簿</a></h1>
+    <div class="app-title">
+      <h1><a href="{% url 'budget:index' %}">家計簿</a></h1>
+      <nav class="app-nav" aria-label="メニュー">
+        {% url 'budget:period_list' as period_list_url %}
+        <a href="{{ period_list_url }}"{% if request.path == period_list_url %} aria-current="page"{% endif %}>期間の一覧</a>
+      </nav>
+    </div>
     {% block header_controls %}{% endblock %}
   </header>
 

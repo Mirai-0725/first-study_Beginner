@@ -1,0 +1,48 @@
+{% extends 'budget/base.html' %}
+{% load budget_extras %}
+
+{% block title %}期間の一覧 | 家計簿{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <div class="card-head">
+      <h2>期間の一覧 <span class="muted">({{ rows|length }}件)</span></h2>
+      <a class="button" href="{% url 'budget:period_create' %}">＋ 新しい期間</a>
+    </div>
+
+    {% if rows %}
+      <table class="period-table">
+        <thead>
+          <tr>
+            <th>期間</th>
+            <th class="num">上限金額</th>
+            <th class="num">使用済み金額</th>
+            <th class="usage-col">使用率</th>
+            <th>状態</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr class="status-{{ row.summary.status }}">
+              <td>
+                <a href="{{ row.period.get_absolute_url }}">{{ row.period }}</a>
+                <span class="timing-tag timing-{{ row.timing }}">{{ row.timing.label }}</span>
+              </td>
+              <td class="num">{{ row.summary.budget|yen }}</td>
+              <td class="num">{{ row.summary.spent|yen }}</td>
+              <td class="usage-col">
+                <div class="mini-progress" aria-hidden="true">
+                  <div class="mini-progress-bar" style="width: {{ row.summary.progress_percent|floatformat:'4u' }}%"></div>
+                </div>
+                <span class="usage-text">{{ row.summary.usage_percent }}%</span>
+              </td>
+              <td><span class="status-label">{{ row.summary.status.label }}</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">期間はまだありません。</p>
+    {% endif %}
+  </section>
+{% endblock %}

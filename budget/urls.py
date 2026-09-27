@@ -6,6 +6,7 @@ app_name = 'budget'
 
 urlpatterns = [
     path('', views.index, name='index'),
+    path('periods/', views.period_list, name='period_list'),
     path('periods/new/', views.period_create, name='period_create'),
     path('periods/<int:pk>/', views.period_detail, name='period_detail'),
     path('periods/<int:pk>/edit/', views.period_edit, name='period_edit'),

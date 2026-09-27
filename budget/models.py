@@ -118,6 +118,14 @@ class BudgetSummary:
         return BudgetStatus.NORMAL
 
 
+class PeriodTiming(models.TextChoices):
+    """W-01: 今日から見た期間の位置"""
+
+    CURRENT = 'current', '今期'
+    PAST = 'past', '過去'
+    FUTURE = 'future', '未来'
+
+
 @dataclass(frozen=True)
 class CategorySegment:
     """W-04: 予算状況のプログレスバーに表示する、カテゴリ1つ分の区間"""
@@ -228,6 +236,15 @@ class Period(models.Model):
     def contains(self, date):
         """指定した日付がこの期間内(開始日・締め日を含む)かどうか"""
         return self.start_date <= date <= self.end_date
+
+    def timing(self, today=None):
+        """W-01: 今日から見て、今期・過去・未来のどれか"""
+        today = today or timezone.localdate()
+        if self.end_date < today:
+            return PeriodTiming.PAST
+        if self.start_date > today:
+            return PeriodTiming.FUTURE
+        return PeriodTiming.CURRENT
 
     # ===== F-06: 予算状況の計算 =====
 

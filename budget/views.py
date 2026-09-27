@@ -1,12 +1,13 @@
 from django.contrib import messages
-from django.db.models import Count
+from django.db.models import Count, Sum
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from . import sorting
 from .forms import ExpenseForm, PeriodForm
-from .models import WARNING_THRESHOLD_PERCENT, Category, Expense, Period
+from .models import WARNING_THRESHOLD_PERCENT, BudgetSummary, Category, Expense, Period
 
 # W-04: 支出の入力欄の下に、ボタンとして表示するカテゴリの数
 FREQUENT_CATEGORY_COUNT = 8
@@ -41,6 +42,7 @@ def _render_period_page(request, period, form, editing_expense=None):
         'segments': period.category_segments(),
         'expenses': period.expenses.select_related('category').order_by(*sorting.order_by_args(sort, order)),
         'sort_headers': sorting.sort_headers(sort, order),
+        'timing': period.timing(),
         'form': form,
         'editing_expense': editing_expense,
         'warning_threshold': WARNING_THRESHOLD_PERCENT,
@@ -62,6 +64,23 @@ def period_detail(request, pk):
     else:
         form = ExpenseForm(period=period)
     return _render_period_page(request, period, form)
+
+
+def period_list(request):
+    """W-01: 期間の一覧。すべての期間の予算状況を見比べ、過去の期間も開けるようにする"""
+    today = timezone.localdate()
+    # 使用済み金額は期間ごとに1回の問い合わせでまとめて集計する(支出がない期間は 0)。
+    # 集計を含む問い合わせではモデルの既定の並び順が使われないため、並び順を明示する
+    periods = Period.objects.annotate(spent=Coalesce(Sum('expenses__amount'), 0)).order_by('-start_date')
+    rows = [
+        {
+            'period': period,
+            'summary': BudgetSummary(budget=period.budget, spent=period.spent),
+            'timing': period.timing(today),
+        }
+        for period in periods
+    ]
+    return render(request, 'budget/period_list.html', {'rows': rows})
 
 
 def period_create(request):
