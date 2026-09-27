@@ -38,6 +38,10 @@
       {% endif %}
       <div><dt>使用率</dt><dd>{{ summary.usage_percent }}%</dd></div>
     </dl>
+    {% if summary.over_message %}
+      {# A-02: 上限を超えた度合いに応じたメッセージ #}
+      <p class="over-message" role="status">{{ summary.over_message }}</p>
+    {% endif %}
     {# W-04: カテゴリごとの色で積み上げて表示する。上限を超えたらバーいっぱいに表示し、上限の位置に線を引く #}
     <div class="progress" role="progressbar" aria-label="使用率"
          aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ summary.usage_percent }}">

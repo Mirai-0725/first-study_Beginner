@@ -28,6 +28,16 @@ CATEGORY_COLORS = [
 UNCATEGORIZED_LABEL = '未分類'
 UNCATEGORIZED_COLOR = '#9ca3af'
 
+# A-02: 上限金額を超えたときのメッセージ。(超過額が上限金額の何%以下か, メッセージ) を小さい順に並べる。
+# 最後の要素(None)は、それより多く超えた場合
+OVER_BUDGET_MESSAGES = [
+    (5, 'ちょっとだけ超えちゃった…で済むと思っていますか?「誤差です」は通用しませんよ。'),
+    (20, '上限金額って、ただの飾りだと思ってました?'),
+    (50, '予算を立てた意味、ありました?財布が静かに泣いています。'),
+    (100, 'もはや予算は「目安」ですらありませんね。来月の自分に謝ってください。'),
+    (None, '上限の2倍超え!ここまで来ると逆に清々しいです。家計簿をつける前に、まず財布を封印しましょう。'),
+]
+
 
 class BudgetStatus(models.TextChoices):
     """F-07: 使用率に応じた予算の状態"""
@@ -53,6 +63,17 @@ class BudgetSummary:
     def over_amount(self):
         """超過額。上限を超えていなければ 0"""
         return max(self.spent - self.budget, 0)
+
+    @property
+    def over_message(self):
+        """A-02: 上限を超えた度合いに応じたメッセージ。上限を超えていなければ空文字"""
+        if not self.over_amount:
+            return ''
+        for limit_percent, message in OVER_BUDGET_MESSAGES:
+            # 小数の誤差が出ないよう整数で比較する(超過額 ÷ 上限金額 ≦ limit_percent %)
+            if limit_percent is None or self.over_amount * 100 <= self.budget * limit_percent:
+                return message
+        return ''
 
     @property
     def usage_rate(self):
