@@ -99,6 +99,26 @@ body[data-status="over"] .status-badge { background: var(--danger); color: #ffff
 .summary-grid dd { margin: 4px 0 0; font-size: 1.4rem; font-weight: bold; }
 .summary-grid dd.negative { color: var(--danger); }
 
+/* A-02: 上限を超えたときのメッセージ */
+.over-message {
+  margin: -4px 0 16px;
+  padding: 10px 14px 10px 40px;
+  position: relative;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: var(--danger);
+  font-weight: bold;
+}
+.over-message::before {
+  content: "💸";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+}
+
 /* W-04: カテゴリごとの色で積み上げるプログレスバー */
 .progress {
   position: relative;
