@@ -1,12 +1,12 @@
 from django.contrib import admin
 
-from .models import Expense, Period
+from .models import Category, Expense, Period
 
 
 class ExpenseInline(admin.TabularInline):
     model = Expense
     extra = 0
-    fields = ['purchased_on', 'name', 'amount']
+    fields = ['purchased_on', 'name', 'category', 'amount']
 
 
 @admin.register(Period)
@@ -27,8 +27,14 @@ class PeriodAdmin(admin.ModelAdmin):
         return obj.status.label
 
 
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ['name', 'color', 'created_at']
+    search_fields = ['name']
+
+
 @admin.register(Expense)
 class ExpenseAdmin(admin.ModelAdmin):
-    list_display = ['purchased_on', 'name', 'amount', 'period']
-    list_filter = ['period']
+    list_display = ['purchased_on', 'name', 'category', 'amount', 'period']
+    list_filter = ['period', 'category']
     search_fields = ['name']

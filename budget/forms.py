@@ -1,7 +1,7 @@
 from django import forms
 from django.utils import timezone
 
-from .models import Expense, Period
+from .models import Category, Expense, Period
 
 
 class DateInput(forms.DateInput):
@@ -29,7 +29,22 @@ class PeriodForm(forms.ModelForm):
 
 
 class ExpenseForm(forms.ModelForm):
-    """F-03, F-05: 支出(品名・金額・購入日)の登録・編集"""
+    """F-03, F-05, W-04: 支出(品名・カテゴリ・金額・購入日)の登録・編集"""
+
+    # W-04: カテゴリは名前で入力する。初めて使う名前なら保存時にカテゴリを作成する
+    # (入力候補は画面の <datalist id="category-options"> で表示する)
+    category_name = forms.CharField(
+        label='カテゴリ(任意)',
+        max_length=Category._meta.get_field('name').max_length,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'placeholder': '例: 食費',
+            'autocomplete': 'off',
+            'list': 'category-options',
+        }),
+    )
+
+    field_order = ['name', 'category_name', 'amount', 'purchased_on']
 
     class Meta:
         model = Expense
@@ -47,6 +62,10 @@ class ExpenseForm(forms.ModelForm):
             kwargs['instance'] = Expense(period=period)
         super().__init__(*args, **kwargs)
 
+        # 編集のときは、現在のカテゴリ名を入力欄に表示する
+        if not self.is_bound and self.instance.category_id:
+            self.initial['category_name'] = self.instance.category.name
+
         # 購入日は選択中の期間内に限る(ブラウザの日付選択でも範囲外を選べないようにする)
         self.fields['purchased_on'].widget.attrs.update(
             min=period.start_date.isoformat(),
@@ -57,3 +76,8 @@ class ExpenseForm(forms.ModelForm):
         if not self.is_bound and self.instance.pk is None:
             today = timezone.localdate()
             self.initial['purchased_on'] = today if period.contains(today) else period.start_date
+
+    def save(self, commit=True):
+        name = self.cleaned_data['category_name']  # CharField が前後の空白を取り除いている
+        self.instance.category = Category.get_or_create_by_name(name) if name else None
+        return super().save(commit=commit)

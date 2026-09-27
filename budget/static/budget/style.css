@@ -8,9 +8,6 @@
   --primary: #2563eb;
   --danger: #c62828;
   --border: #d1d5db;
-  --bar-normal: #22c55e;
-  --bar-warning: #f97316;
-  --bar-over: #b71c1c;
 }
 
 * { box-sizing: border-box; }
@@ -102,26 +99,61 @@ body[data-status="over"] .status-badge { background: var(--danger); color: #ffff
 .summary-grid dd { margin: 4px 0 0; font-size: 1.4rem; font-weight: bold; }
 .summary-grid dd.negative { color: var(--danger); }
 
+/* W-04: カテゴリごとの色で積み上げるプログレスバー */
 .progress {
   position: relative;
+  display: flex;
   height: 18px;
   background: #e5e7eb;
   border-radius: 999px;
   overflow: hidden;
 }
-.progress-bar { height: 100%; background: var(--bar-normal); }
-body[data-status="warning"] .progress-bar { background: var(--bar-warning); }
-body[data-status="over"] .progress-bar { background: var(--bar-over); }
-.progress-threshold {
+.progress-segment { height: 100%; }
+.progress-segment + .progress-segment { box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.8); }
+.progress-line {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 2px;
-  background: rgba(0, 0, 0, 0.45);
+  margin-left: -1px;
+}
+.warning-line { background: rgba(0, 0, 0, 0.45); }
+.budget-line { width: 3px; background: #111827; }
+
+.category-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  font-size: 0.85rem;
+}
+.legend-amount { color: var(--muted); }
+
+.category-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: baseline;
 }
 
 /* ===== フォーム ===== */
-.form-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
+.form-row { display: grid; grid-template-columns: 2fr 1.3fr 1fr 1.1fr; gap: 12px; }
+
+/* W-04: よく使うカテゴリのボタン */
+.category-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.category-chip {
+  background: #f3f4f6;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.85rem;
+}
+.category-chip.selected { border-color: var(--primary); background: #eff6ff; }
 
 .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
 .form-row .field { margin-bottom: 0; }
@@ -180,6 +212,7 @@ button.danger { background: transparent; color: var(--danger); }
 .expense-table .num { text-align: right; white-space: nowrap; }
 .expense-table td.actions { text-align: right; white-space: nowrap; }
 .expense-table tr.editing { background: #eff6ff; }
+.expense-table .category-cell { white-space: nowrap; }
 
 @media (max-width: 600px) {
   .form-row { grid-template-columns: 1fr; }
