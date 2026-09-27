@@ -28,6 +28,27 @@ class PeriodForm(forms.ModelForm):
         }
 
 
+class BackupImportForm(forms.Form):
+    """A-03: バックアップファイル(CSV)の読み込み"""
+
+    MAX_SIZE = 5 * 1024 * 1024  # 5MB
+
+    file = forms.FileField(
+        label='バックアップファイル(CSV)',
+        widget=forms.ClearableFileInput(attrs={'accept': '.csv,text/csv'}),
+    )
+    confirm = forms.BooleanField(
+        label='現在のデータ(カテゴリ・期間・支出)がすべて削除され、ファイルの内容に置き換わることを理解しました',
+        error_messages={'required': '読み込む前に、確認のチェックを入れてください。'},
+    )
+
+    def clean_file(self):
+        file = self.cleaned_data['file']
+        if file.size > self.MAX_SIZE:
+            raise forms.ValidationError('ファイルが大きすぎます(5MBまで)。')
+        return file
+
+
 class ExpenseForm(forms.ModelForm):
     """F-03, F-05, W-04: 支出(品名・カテゴリ・金額・購入日)の登録・編集"""
 

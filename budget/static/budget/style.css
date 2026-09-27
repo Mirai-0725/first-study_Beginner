@@ -250,6 +250,13 @@ input, select {
 
 .form-actions { display: flex; gap: 8px; margin-top: 12px; }
 
+/* A-03: バックアップ画面 */
+.checkbox-field label { flex-direction: row; align-items: flex-start; gap: 8px; color: var(--text); font-size: 0.9rem; }
+.checkbox-field input[type="checkbox"] { width: auto; margin-top: 3px; }
+.error-list { margin: 6px 0 0; padding-left: 20px; }
+.danger-text { color: var(--danger); }
+button.button-danger { background: var(--danger); }
+
 /* ===== ボタン ===== */
 button, .button {
   display: inline-block;

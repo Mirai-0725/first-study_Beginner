@@ -6,7 +6,7 @@
 予算内に収まっているかを一目で確認できます。上限に近づくと画面の背景が赤くなって知らせます。
 （浪費癖が近ごろひどいため作成しました。）
 
-> 必須機能の実装と、AWS(EC2 + RDS)へのデプロイまで完了しています。
+> 必須機能を実装し、AWS(EC2 + RDS)へのデプロイで動作を確認しました(現在は AWS 環境を削除し、ローカルで利用しています)。
 
 ## 主な機能
 
@@ -15,6 +15,11 @@
 - 購入した物と金額の入力・一覧表示・編集・削除
 - 上限金額・使用済み金額・残り金額・使用率の表示
 - 使用率が 80% 以上になると背景が赤くなり、上限を超えるとさらに濃い赤で警告
+- 支出のカテゴリ分け(一度使ったカテゴリは記憶)と、カテゴリ別の色で積み上げたプログレスバー
+- 支出一覧の並び替え(購入日・カテゴリ・金額)
+- 上限を超えたときの、超過の度合いに応じたメッセージ
+- 期間の一覧(過去の期間の予算状況の閲覧)
+- データのバックアップ(CSVファイルへの書き出し・読み込み)
 
 詳細は [要件定義書 (REQUIREMENTS.md)](REQUIREMENTS.md) を参照してください。
 
@@ -87,11 +92,13 @@ AWS(EC2 + RDS)上で動作しているアプリを操作して撮影した画面
 | `config/` | Djangoプロジェクトの設定(`settings.py`・URL定義など) |
 | `budget/` | 家計簿アプリ本体 |
 | `budget/models.py` | 期間・支出のデータと、予算状況の計算 |
-| `budget/forms.py` | 入力フォーム(期間・支出) |
+| `budget/forms.py` | 入力フォーム(期間・支出・バックアップの読み込み) |
+| `budget/sorting.py` | 支出一覧の並び替え |
+| `budget/backup.py` | バックアップ(CSVファイルへの書き出し・読み込み) |
 | `budget/views.py` / `budget/urls.py` | 画面の処理とURL |
 | `budget/templates/budget/` | 画面のHTML(Djangoテンプレート) |
 | `budget/static/budget/` | CSS・JavaScript |
-| `budget/tests.py` / `budget/test_views.py` | テスト(モデル / 画面) |
+| `budget/tests.py` / `budget/test_*.py` | テスト(モデル・画面・各機能) |
 | `infra/` | AWS(VPC・EC2・RDS)を構築する Terraform のコード |
 | `infra/templates/user_data.sh.tftpl` | EC2の初回起動時に実行するセットアップスクリプト |
 | `docker-compose.yml` | ローカル開発用の MySQL |

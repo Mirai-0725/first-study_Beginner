@@ -1,0 +1,46 @@
+{% extends 'budget/base.html' %}
+
+{% block title %}バックアップ | 家計簿{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <h2>バックアップを保存する</h2>
+    <p>
+      すべてのデータ(カテゴリ {{ counts.categories }}件・期間 {{ counts.periods }}件・支出 {{ counts.expenses }}件)を、
+      CSVファイルとしてダウンロードします。Excel などで開いて中身を確認することもできます。
+    </p>
+    <a class="button" href="{% url 'budget:backup_export' %}">CSVファイルをダウンロード</a>
+  </section>
+
+  <section class="card">
+    <h2>バックアップから復元する</h2>
+    <p>
+      このアプリで保存したCSVファイルを読み込みます。
+      <strong class="danger-text">現在のデータはすべて削除され、ファイルの内容に置き換わります。</strong>
+      ファイルに誤りがある場合は何も変更しません。
+    </p>
+
+    {% if errors %}
+      <div class="error-box" role="alert">
+        <p class="error"><strong>ファイルを読み込めませんでした。データは変更していません。</strong></p>
+        <ul class="error-list">
+          {% for error in errors %}<li class="error">{{ error }}</li>{% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'budget:backup_import' %}" enctype="multipart/form-data"
+          data-confirm="現在のデータをすべて削除して、ファイルの内容に置き換えます。よろしいですか?">
+      {% csrf_token %}
+      {% include 'budget/_non_field_errors.html' %}
+      {% include 'budget/_field.html' with field=form.file %}
+      <div class="field checkbox-field{% if form.confirm.errors %} has-error{% endif %}">
+        <label>{{ form.confirm }} {{ form.confirm.label }}</label>
+        {% for error in form.confirm.errors %}<p class="error">{{ error }}</p>{% endfor %}
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="button-danger">読み込んで置き換える</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

@@ -12,4 +12,7 @@ urlpatterns = [
     path('periods/<int:pk>/edit/', views.period_edit, name='period_edit'),
     path('expenses/<int:pk>/edit/', views.expense_edit, name='expense_edit'),
     path('expenses/<int:pk>/delete/', views.expense_delete, name='expense_delete'),
+    path('backup/', views.backup_page, name='backup'),
+    path('backup/export/', views.backup_export, name='backup_export'),
+    path('backup/import/', views.backup_import, name='backup_import'),
 ]
