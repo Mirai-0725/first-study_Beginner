@@ -14,6 +14,8 @@
       <nav class="app-nav" aria-label="メニュー">
         {% url 'budget:period_list' as period_list_url %}
         <a href="{{ period_list_url }}"{% if request.path == period_list_url %} aria-current="page"{% endif %}>期間の一覧</a>
+        {% url 'budget:backup' as backup_url %}
+        <a href="{{ backup_url }}"{% if request.path == backup_url %} aria-current="page"{% endif %}>バックアップ</a>
       </nav>
     </div>
     {% block header_controls %}{% endblock %}

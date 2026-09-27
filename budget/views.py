@@ -1,12 +1,13 @@
 from django.contrib import messages
+from django.http import HttpResponse
 from django.db.models import Count, Sum
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from . import sorting
-from .forms import ExpenseForm, PeriodForm
+from . import backup, sorting
+from .forms import BackupImportForm, ExpenseForm, PeriodForm
 from .models import WARNING_THRESHOLD_PERCENT, BudgetSummary, Category, Expense, Period
 
 # W-04: 支出の入力欄の下に、ボタンとして表示するカテゴリの数
@@ -114,6 +115,43 @@ def expense_edit(request, pk):
         messages.success(request, f'「{expense.name}」を更新しました。')
         return redirect(period)
     return _render_period_page(request, period, form, editing_expense=expense)
+
+
+def backup_page(request, form=None, errors=None, status=200):
+    """A-03: バックアップ画面(書き出し・読み込み)"""
+    return render(request, 'budget/backup.html', {
+        'form': form or BackupImportForm(),
+        'errors': errors or [],
+        'counts': {
+            'categories': Category.objects.count(),
+            'periods': Period.objects.count(),
+            'expenses': Expense.objects.count(),
+        },
+    }, status=status)
+
+
+def backup_export(request):
+    """A-03: すべてのデータをCSVファイルとしてダウンロードする"""
+    response = HttpResponse(backup.export_bytes(), content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="{backup.filename()}"'
+    return response
+
+
+@require_POST
+def backup_import(request):
+    """A-03: CSVファイルを読み込み、現在のデータを置き換える"""
+    form = BackupImportForm(request.POST, request.FILES)
+    if not form.is_valid():
+        return backup_page(request, form=form, status=400)
+    try:
+        result = backup.import_bytes(form.cleaned_data['file'].read())
+    except backup.BackupError as e:
+        return backup_page(request, form=form, errors=e.errors, status=400)
+    messages.success(
+        request,
+        f'バックアップを読み込みました(カテゴリ {result.categories}件・期間 {result.periods}件・支出 {result.expenses}件)。',
+    )
+    return redirect('budget:index')
 
 
 @require_POST
